@@ -50,7 +50,6 @@ FAN_SPEEDS = {
     'HIGH': FAN_SPEED_HIGH,
 }
 
-
 def setup_fan_core_(fan_var, config):
     if CONF_INTERNAL in config:
         add(fan_var.set_internal(config[CONF_INTERNAL]))

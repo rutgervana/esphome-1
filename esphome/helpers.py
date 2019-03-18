@@ -153,3 +153,22 @@ def symlink(src, dst):
         flags = 1 if os.path.isdir(src) else 0
         if csl(dst, src, flags) == 0:
             raise ctypes.WinError()
+
+def unlink(path):
+    if hasattr(os, 'symlink'):
+        return os.unlink(path)
+    return os.rmdir(path)
+
+def path_is_link(path):
+    if hasattr(os, 'symlink'):
+        return os.path.islink(path)
+    else:
+        import ctypes
+        csl = ctypes.windll.kernel32.GetFileAttributesW
+        csl.argtypes = (ctypes.c_wchar_p,)
+        csl.restype = ctypes.c_ulonglong
+        FILE_ATTRIBUTE_REPARSE_POINT = 1024
+        cslRet = csl(path)
+        if cslRet == 0:
+            raise ctypes.WinError()
+        return bool(os.path.isdir(path) and (cslRet & FILE_ATTRIBUTE_REPARSE_POINT))
