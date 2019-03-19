@@ -5,7 +5,9 @@ import logging
 import os
 import socket
 import subprocess
+import ctypes
 
+from ctypes import wintypes
 from esphome.py_compat import char_to_byte, text_type
 from esphome.zeroconf import Zeroconf
 
@@ -146,51 +148,32 @@ def symlink(src, dst):
     if hasattr(os, 'symlink'):
         os.symlink(src, dst)
     else:
-        import ctypes
         csl = ctypes.windll.kernel32.CreateSymbolicLinkW
         csl.argtypes = (ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32)
         csl.restype = ctypes.c_ubyte
         flags = 1 if os.path.isdir(src) else 0
         if csl(dst, src, flags) == 0:
-            raise ctypes.WinError()
-
-def unlink(path):
-    if hasattr(os, 'symlink'):
-        return os.unlink(path)
-    return os.rmdir(path)
-
-def path_is_link(path):
-    if hasattr(os, 'symlink'):
-        return os.path.islink(path)
-    else:
-        import ctypes
-        csl = ctypes.windll.kernel32.GetFileAttributesW
-        csl.argtypes = (ctypes.c_wchar_p,)
-        csl.restype = ctypes.c_ulonglong
-        FILE_ATTRIBUTE_REPARSE_POINT = 1024
-        cslRet = csl(path)
-        if cslRet == 0:
-            raise ctypes.WinError()
-        return bool(os.path.isdir(path) and (cslRet & FILE_ATTRIBUTE_REPARSE_POINT))
+            error = ctypes.WinError()
+            if error.winerror == 1314 and error.errno == 22:
+                from esphome.core import EsphomeError
+                raise EsphomeError("Cannot create symlink from '%s' to '%s'. Try running tool \
+with elevated privileges" % (src, dst))
+            raise error
 
 
 #https://stackoverflow.com/questions/27972776/having-trouble-implementing-a-readlink-function
-# 
-import os
-import ctypes
-from ctypes import wintypes
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
 FILE_READ_ATTRIBUTES = 0x0080
 OPEN_EXISTING = 3
 FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000
-FILE_FLAG_BACKUP_SEMANTICS   = 0x02000000
+FILE_FLAG_BACKUP_SEMANTICS = 0x02000000
 FILE_ATTRIBUTE_REPARSE_POINT = 0x0400
 
 IO_REPARSE_TAG_MOUNT_POINT = 0xA0000003
-IO_REPARSE_TAG_SYMLINK     = 0xA000000C
-FSCTL_GET_REPARSE_POINT    = 0x000900A8
+IO_REPARSE_TAG_SYMLINK = 0xA000000C
+FSCTL_GET_REPARSE_POINT = 0x000900A8
 MAXIMUM_REPARSE_DATA_BUFFER_SIZE = 0x4000
 
 LPDWORD = ctypes.POINTER(wintypes.DWORD)
@@ -226,9 +209,9 @@ kernel32.CreateFileW.argtypes = (
     wintypes.DWORD,   # _In_     dwDesiredAccess
     wintypes.DWORD,   # _In_     dwShareMode
     wintypes.LPVOID,  # _In_opt_ lpSecurityAttributes
-    wintypes.DWORD,   # _In_     dwCreationDisposition
-    wintypes.DWORD,   # _In_     dwFlagsAndAttributes
-    wintypes.HANDLE)  # _In_opt_ hTemplateFile 
+    wintypes.DWORD, # _In_     dwCreationDisposition
+    wintypes.DWORD, # _In_     dwFlagsAndAttributes
+    wintypes.HANDLE)  # _In_opt_ hTemplateFile
 
 kernel32.CloseHandle.argtypes = (
     wintypes.HANDLE,) # _In_ hObject
@@ -242,15 +225,15 @@ kernel32.DeviceIoControl.argtypes = (
     wintypes.LPVOID,  # _Out_opt_   lpOutBuffer
     wintypes.DWORD,   # _In_        nOutBufferSize
     LPDWORD,          # _Out_opt_   lpBytesReturned
-    wintypes.LPVOID)  # _Inout_opt_ lpOverlapped 
+    wintypes.LPVOID)  # _Inout_opt_ lpOverlapped
 
 class REPARSE_DATA_BUFFER(ctypes.Structure):
     class ReparseData(ctypes.Union):
         class LinkData(ctypes.Structure):
             _fields_ = (('SubstituteNameOffset', wintypes.USHORT),
                         ('SubstituteNameLength', wintypes.USHORT),
-                        ('PrintNameOffset',      wintypes.USHORT),
-                        ('PrintNameLength',      wintypes.USHORT))
+                        ('PrintNameOffset', wintypes.USHORT),
+                        ('PrintNameLength', wintypes.USHORT))
             @property
             def PrintName(self):
                 dt = wintypes.WCHAR * (self.PrintNameLength //
@@ -261,22 +244,25 @@ class REPARSE_DATA_BUFFER(ctypes.Structure):
                     name = r'\\?' + name[3:] # NT => Windows
                 return name
         class SymbolicLinkData(LinkData):
-            _fields_ = (('Flags',      wintypes.ULONG),
-                        ('PathBuffer', wintypes.BYTE * 0))
+            _fields_ = (('Flags', wintypes.ULONG), ('PathBuffer', wintypes.BYTE * 0))
         class MountPointData(LinkData):
             _fields_ = (('PathBuffer', wintypes.BYTE * 0),)
         class GenericData(ctypes.Structure):
             _fields_ = (('DataBuffer', wintypes.BYTE * 0),)
         _fields_ = (('SymbolicLinkReparseBuffer', SymbolicLinkData),
-                    ('MountPointReparseBuffer',   MountPointData),
-                    ('GenericReparseBuffer',      GenericData))
-    _fields_ = (('ReparseTag',        wintypes.ULONG),
+                    ('MountPointReparseBuffer', MountPointData),
+                    ('GenericReparseBuffer', GenericData))
+    _fields_ = (('ReparseTag', wintypes.ULONG),
                 ('ReparseDataLength', wintypes.USHORT),
-                ('Reserved',          wintypes.USHORT),
-                ('ReparseData',       ReparseData))
+                ('Reserved', wintypes.USHORT),
+                ('ReparseData', ReparseData))
     _anonymous_ = ('ReparseData',)
 
 def islink(path):
+    if hasattr(os, 'symlink'):
+        return os.path.islink(path)
+    if not os.path.isdir(path):
+        return False
     data = wintypes.WIN32_FIND_DATAW()
     kernel32.FindClose(kernel32.FindFirstFileW(path, ctypes.byref(data)))
     if not data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT:
@@ -284,14 +270,16 @@ def islink(path):
     return IsReparseTagNameSurrogate(data.dwReserved0)
 
 def readlink(path):
+    if hasattr(os, 'symlink'):
+        return os.readlink(path)
     n = wintypes.DWORD()
     buf = (wintypes.BYTE * MAXIMUM_REPARSE_DATA_BUFFER_SIZE)()
     flags = FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS
     handle = kernel32.CreateFileW(path, FILE_READ_ATTRIBUTES, 0, None,
-                OPEN_EXISTING, flags, None)
+                                  OPEN_EXISTING, flags, None)
     try:
         kernel32.DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, None, 0,
-            buf, ctypes.sizeof(buf), ctypes.byref(n), None)
+                                 buf, ctypes.sizeof(buf), ctypes.byref(n), None)
     finally:
         kernel32.CloseHandle(handle)
     rb = REPARSE_DATA_BUFFER.from_buffer(buf)
@@ -304,63 +292,19 @@ def readlink(path):
         raise ValueError("not a link")
     raise ValueError("unsupported reparse tag: %d" % tag)
 
-def symlink(src, dst):
-    if hasattr(os, 'symlink'):
-        os.symlink(src, dst)
-    else:
-        import ctypes
-        csl = ctypes.windll.kernel32.CreateSymbolicLinkW
-        csl.argtypes = (ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32)
-        csl.restype = ctypes.c_ubyte
-        flags = 1 if os.path.isdir(src) else 0
-        if csl(dst, src, flags) == 0:
-            raise ctypes.WinError()
-
-import os
-
 def unlink(path):
     if hasattr(os, 'symlink'):
         return os.unlink(path)
-    else:
-        os.rmdir(path)
+    return os.rmdir(path)
 
 def pathIsLink(path):
     if hasattr(os, 'symlink'):
         return os.path.islink(path)
     else:
-        import ctypes
         gfa = ctypes.windll.kernel32.GetFileAttributesW
         gfa.argtypes = (ctypes.c_wchar_p,)
         gfa.restype = ctypes.c_ulonglong
-        FILE_ATTRIBUTE_REPARSE_POINT = 1024
         gfaRet = gfa(path)
         if gfaRet == 0:
             raise ctypes.WinError()
-        
-        return bool(os.path.isdir(path) 
-                    and (gfaRet & FILE_ATTRIBUTE_REPARSE_POINT))
-
-#print pathIsLink('folderWithStuff')
-#
-if (pathIsLink('emptyFolder\\symlink')):
-    print "Link exists. Unlinking..."
-    unlink('emptyFolder\\symlink')
-else:
-    print "Link does not exist"
-
-print "Creating link"
-#symlink('folderWithStuff', 'emptyFolder\\symlink')
-
-print "Path is link"
-print pathIsLink('emptyFolder\\symlink')
-    
-print islink('emptyFolder\\symlink')
-
-if (islink('emptyFolder\\symlink')):
-    print "Path link:"
-    print readlink('emptyFolder\\symlink')
-
-    print "Unlinking"
-    unlink('emptyFolder\\symlink')
-
-
+        return bool(os.path.isdir(path) and (gfaRet & FILE_ATTRIBUTE_REPARSE_POINT))
