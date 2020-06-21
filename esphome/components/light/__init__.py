@@ -2,25 +2,44 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 import esphome.automation as auto
 from esphome.components import mqtt, power_supply
-from esphome.const import CONF_COLOR_CORRECT, \
+from esphome.const import CONF_BRIGHTNESS, CONF_COLOR_CORRECT, CONF_STATE, \
     CONF_DEFAULT_TRANSITION_LENGTH, CONF_EFFECTS, CONF_GAMMA_CORRECT, CONF_ID, \
     CONF_INTERNAL, CONF_NAME, CONF_MQTT_ID, CONF_POWER_SUPPLY, CONF_RESTORE_MODE, \
-    CONF_ON_TURN_OFF, CONF_ON_TURN_ON, CONF_TRIGGER_ID, CONF_INITIAL_VALUE
+    CONF_ON_TURN_OFF, CONF_ON_TURN_ON, CONF_TRIGGER_ID, CONF_RED, CONF_GREEN, \
+    CONF_BLUE, CONF_WHITE, CONF_COLOR_TEMPERATURE, CONF_EFFECT
 from esphome.core import coroutine, coroutine_with_priority
 from .automation import light_control_to_code  # noqa
 from .effects import validate_effects, BINARY_EFFECTS, \
     MONOCHROMATIC_EFFECTS, RGB_EFFECTS, ADDRESSABLE_EFFECTS, EFFECTS_REGISTRY
 from .types import (  # noqa
     LightState, AddressableLightState, light_ns, LightOutput, AddressableLight, \
-    LightTurnOnTrigger, LightTurnOffTrigger)
+    LightTurnOnTrigger, LightTurnOffTrigger, LightStateRetainState)
 
 IS_PLATFORM_COMPONENT = True
 
-LEGACY_LIGHT_RESTORE_MODES = {
-    'RESTORE_DEFAULT_OFF': False, # deprecated
-    'RESTORE_DEFAULT_ON': False, # deprecated
-    'ALWAYS_OFF': False, # deprecated
-    'ALWAYS_ON': False, # deprecated
+
+def maybe_conf(conf, *validators):
+    validator = cv.All(*validators)
+
+    def validate(value):
+        if isinstance(value, dict):
+            return validator(value)
+        with cv.remove_prepend_path([conf]):
+            return validator({conf: value})
+
+    return validate
+
+
+LIGHT_RETAIN_SCHEMA = {
+    cv.GenerateID(): cv.declare_id(LightStateRetainState),
+    cv.Optional(CONF_STATE): cv.boolean,
+    cv.Optional(CONF_BRIGHTNESS): cv.percentage,
+    cv.Optional(CONF_RED): cv.percentage,
+    cv.Optional(CONF_GREEN): cv.percentage,
+    cv.Optional(CONF_BLUE): cv.percentage,
+    cv.Optional(CONF_WHITE): cv.percentage,
+    cv.Optional(CONF_COLOR_TEMPERATURE): cv.color_temperature,
+    cv.Optional(CONF_EFFECT): cv.int_,
 }
 
 LIGHT_SCHEMA = cv.MQTT_COMMAND_COMPONENT_SCHEMA.extend({
@@ -32,9 +51,9 @@ LIGHT_SCHEMA = cv.MQTT_COMMAND_COMPONENT_SCHEMA.extend({
     cv.Optional(CONF_ON_TURN_OFF): auto.validate_automation({
         cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(LightTurnOffTrigger),
     }),
-}).extend(cv.stateful_component_schema(
-    cv.boolean,
-    cv.enum(LEGACY_LIGHT_RESTORE_MODES, upper=True, space='_')))
+    cv.Optional(CONF_RESTORE_MODE): cv.invalid(
+        "RESTORE_MODE is no longer supported. Please see retain and intial_value")
+}).extend(cv.retain_component_schema(maybe_conf(CONF_STATE, LIGHT_RETAIN_SCHEMA)))
 
 BINARY_LIGHT_SCHEMA = LIGHT_SCHEMA.extend({
     cv.Optional(CONF_EFFECTS): validate_effects(BINARY_EFFECTS),
@@ -58,7 +77,7 @@ ADDRESSABLE_LIGHT_SCHEMA = RGB_LIGHT_SCHEMA.extend({
 })
 
 
-@coroutine
+@ coroutine
 def setup_light_core_(light_var, output_var, config):
     if CONF_INTERNAL in config:
         cg.add(light_var.set_internal(config[CONF_INTERNAL]))
@@ -87,29 +106,10 @@ def setup_light_core_(light_var, output_var, config):
         mqtt_ = cg.new_Pvariable(config[CONF_MQTT_ID], light_var)
         yield mqtt.register_mqtt_component(mqtt_, config)
 
-    def get_initial_value(config):
-        initial_value = False
-
-        if CONF_INITIAL_VALUE in config:
-            initial_value = config[CONF_INITIAL_VALUE]
-        elif CONF_RESTORE_MODE in config:
-            if ((config[CONF_RESTORE_MODE] == 'RESTORE_DEFAULT_OFF') or
-                (config[CONF_RESTORE_MODE] == 'ALWAYS_OFF')):
-                initial_value = False
-            elif ((config[CONF_RESTORE_MODE] == 'RESTORE_DEFAULT_ON') or
-                (config[CONF_RESTORE_MODE] == 'ALWAYS_ON')):
-                initial_value = True
-
-        return cg.StructInitializer(LightState.struct("LightStateRTCState"),
-                                    ("state", initial_value))
-
-    cv.stateful_component_to_code(light_var,
-                                  config,
-                                  LightState.struct("LightStateRTCState"),
-                                  get_initial_value=get_initial_value)
+    cg.init_retain(light_var, config, cg.struct_initial_value(LightStateRetainState))
 
 
-@coroutine
+@ coroutine
 def register_light(output_var, config):
     light_var = cg.new_Pvariable(config[CONF_ID], config[CONF_NAME], output_var)
     cg.add(cg.App.register_light(light_var))
@@ -117,7 +117,7 @@ def register_light(output_var, config):
     yield setup_light_core_(light_var, output_var, config)
 
 
-@coroutine_with_priority(100.0)
+@ coroutine_with_priority(100.0)
 def to_code(config):
     cg.add_define('USE_LIGHT')
     cg.add_global(light_ns.using)

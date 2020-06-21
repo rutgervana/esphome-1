@@ -7,7 +7,7 @@
 namespace esphome {
 namespace globals {
 
-template<typename T> class GlobalsComponent : public Component, public Nameable {
+template<typename T> class GlobalsComponent : public Component, public Nameable, public RetainState<T> {
  public:
   using value_type = T;
   explicit GlobalsComponent() = default;
@@ -19,7 +19,7 @@ template<typename T> class GlobalsComponent : public Component, public Nameable 
 
   void setup() override {
     // TODO: check return bool?
-    this->rtc_.load(&this->value_);
+    this->value_ = this->get_state_();
     memcpy(&this->prev_value_, &this->value_, sizeof(T));
   }
 
@@ -28,14 +28,12 @@ template<typename T> class GlobalsComponent : public Component, public Nameable 
   void loop() override {
     int diff = memcmp(&this->value_, &this->prev_value_, sizeof(T));
     if (diff != 0) {
-      this->rtc_.save(&this->value_);
+      this->save_state_(this->value_);
       memcpy(&this->prev_value_, &this->value_, sizeof(T));
     }
   }
 
   uint32_t hash_base() override { return 1944399030U; }
-
-  void set_preference(ESPPreferenceObject preference) { this->rtc_ = preference; }
 
  protected:
   T value_{};

@@ -160,31 +160,22 @@ class LightCall {
   bool save_{true};
 };
 
-enum LightRestoreMode {
-  LIGHT_RESTORE_DEFAULT_OFF,
-  LIGHT_RESTORE_DEFAULT_ON,
-  LIGHT_ALWAYS_OFF,
-  LIGHT_ALWAYS_ON,
+struct LightStateRetainState {
+  bool state;
+  float brightness;
+  float red;
+  float green;
+  float blue;
+  float white;
+  float color_temp;
+  uint32_t effect;
 };
 
 /** This class represents the communication layer between the front-end MQTT layer and the
  * hardware output layer.
  */
-class LightState : public Nameable, public Component {
+class LightState : public Nameable, public Component, public RetainState<LightStateRetainState> {
  public:
-  struct LightStateRTCState {
-    LightStateRTCState() {}
-    LightStateRTCState(bool state) : state(state) {}
-    bool state{false};
-    float brightness{1.0f};
-    float red{1.0f};
-    float green{1.0f};
-    float blue{1.0f};
-    float white{1.0f};
-    float color_temp{1.0f};
-    uint32_t effect{0};
-  };
-
   /// Construct this LightState using the provided traits and name.
   LightState(const std::string &name, LightOutput *output);
 
@@ -287,8 +278,6 @@ class LightState : public Nameable, public Component {
 
   void current_values_as_cwww(float *cold_white, float *warm_white, bool constant_brightness = false);
 
-  void set_preference(TypedESPPreferenceObject<LightStateRTCState>&& preference) { rtc_ = preference; }
-
  protected:
   friend LightOutput;
   friend LightCall;
@@ -314,9 +303,6 @@ class LightState : public Nameable, public Component {
 
   LightEffect *get_active_effect_();
 
-  /// Object used to store the persisted values of the light.
-  TypedESPPreferenceObject<LightStateRTCState> rtc_;
-  /// Restore mode of the light.
   /// Default transition length for all transitions in ms.
   uint32_t default_transition_length_{};
   /// Value for storing the index of the currently active effect. 0 if no effect is active
@@ -340,7 +326,7 @@ class LightState : public Nameable, public Component {
   std::vector<LightEffect *> effects_;
 };
 
-bool operator!=(const LightState::LightStateRTCState& lhs, const LightState::LightStateRTCState& rhs);
+bool operator!=(const LightStateRetainState &lhs, const LightStateRetainState &rhs);
 
 }  // namespace light
 }  // namespace esphome

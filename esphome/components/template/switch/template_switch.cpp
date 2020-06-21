@@ -40,10 +40,10 @@ float TemplateSwitch::get_setup_priority() const { return setup_priority::HARDWA
 Trigger<> *TemplateSwitch::get_turn_on_trigger() const { return this->turn_on_trigger_; }
 Trigger<> *TemplateSwitch::get_turn_off_trigger() const { return this->turn_off_trigger_; }
 void TemplateSwitch::setup() {
-  bool restored = this->get_initial_state();
+  auto state = this->get_state_();
 
-  ESP_LOGD(TAG, "  Restored state %s", ONOFF(restored));
-  if (restored) {
+  ESP_LOGD(TAG, "  Restored state %s", ONOFF(state));
+  if (state) {
     this->turn_on();
   } else {
     this->turn_off();

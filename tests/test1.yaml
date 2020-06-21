@@ -250,7 +250,7 @@ sensor:
     id: my_sensor
     filters:
     state_topic: hi/me
-    retain: false
+    mqtt_retain: false
     availability:
   - platform: atm90e32
     cs_pin: 5
@@ -302,7 +302,7 @@ sensor:
     address: 0x23
     resolution: 1.0
     update_interval: 30s
-    retain: False
+    mqtt_retain: False
     availability:
     state_topic: livingroom/custom_state_topic
   - platform: bme280
@@ -1248,7 +1248,8 @@ switch:
     icon: "mdi:restart"
     inverted: True
     command_topic: custom_command_topic
-    restore_mode: ALWAYS_OFF
+    retain: no
+    initial_value: OFF
   - platform: template
     name: JVC Off
     id: living_room_lights_on
@@ -1262,20 +1263,23 @@ switch:
       remote_transmitter.transmit_nec:
         address: 0x4242
         command: 0x8484
-    restore_mode: ALWAYS_ON
+    retain: no
+    initial_value: ON
   - platform: template
     name: LG
     turn_on_action:
       remote_transmitter.transmit_lg:
         data: 4294967295
         nbits: 28
-    restore_mode: RESTORE_DEFAULT_ON
+    retain: yes
+    initial_value: ON
   - platform: template
     name: Samsung
     turn_on_action:
       remote_transmitter.transmit_samsung:
         data: 0xABCDEF
-    restore_mode: RESTORE_DEFAULT_OFF
+    retain: yes
+    initial_value: OFF
   - platform: template
     name: Sony
     turn_on_action:
@@ -1375,7 +1379,8 @@ switch:
   - platform: output
     name: "Generic Output"
     output: pca_6
-    restore_mode: RESTORE_DEFAULT_ON
+    retain: yes
+    initial_value: ON
   - platform: template
     name: "Template Switch"
     id: my_switch
@@ -1617,19 +1622,19 @@ stepper:
 globals:
 - id: glob_int
   type: int
-  restore_value: yes
+  retain: yes
   initial_value: '0'
 - id: glob_float
   type: float
-  restore_value: yes
+  retain: no
   initial_value: '0.0f'
 - id: glob_bool
   type: bool
-  restore_value: no
+  retain: yes
   initial_value: 'true'
 - id: glob_string
   type: std::string
-  restore_value: no
+  retain: no
   # initial_value: ""
 
 text_sensor:

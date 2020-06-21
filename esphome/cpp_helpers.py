@@ -1,8 +1,9 @@
 from esphome.const import CONF_INVERTED, CONF_MODE, CONF_NUMBER, CONF_SETUP_PRIORITY, \
-    CONF_UPDATE_INTERVAL, CONF_TYPE_ID
+    CONF_UPDATE_INTERVAL, CONF_TYPE_ID, CONF_INITIAL_VALUE, CONF_RETAIN, CONF_ID
 # pylint: disable=unused-import
 from esphome.core import coroutine, ID, CORE, ConfigType
-from esphome.cpp_generator import RawExpression, add, get_variable
+from esphome.cpp_generator import RawExpression, add, get_variable, variable, \
+    AssignmentExpression
 from esphome.cpp_types import App, GPIOPin
 from esphome.util import Registry, RegistryEntry
 
@@ -80,3 +81,33 @@ def build_registry_list(registry, config):
         action = yield build_registry_entry(registry, conf)
         actions.append(action)
     yield actions
+
+
+def default_get_initial_value(config):
+    initial_value = RawExpression("{}")
+    if CONF_INITIAL_VALUE in config:
+        initial_value = config[CONF_INITIAL_VALUE]
+    return initial_value
+
+
+def init_retain(var,
+                config,
+                get_initial_value=default_get_initial_value):
+    retain = config[CONF_RETAIN]
+    initial_value = get_initial_value(config)
+    add(var.init_retain(var.get_object_id_hash(), retain, initial_value))
+
+
+def struct_initial_value(device_retain_state):
+    def builder(config):
+        initial_value = RawExpression("{}")
+        if CONF_INITIAL_VALUE in config:
+            initial_value_config = config[CONF_INITIAL_VALUE]
+            initial_value = variable(initial_value_config[CONF_ID], RawExpression("{}"), device_retain_state)
+            for key, val in initial_value_config.items():
+                if isinstance(val, ID):
+                    continue
+                add(AssignmentExpression(None, None, getattr(initial_value, key), val, None))
+        return initial_value
+
+    return builder

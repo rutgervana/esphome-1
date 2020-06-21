@@ -124,8 +124,6 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Optional(CONF_PLATFORMIO_OPTIONS, default={}): cv.Schema({
         cv.string_strict: cv.Any([cv.string], cv.string),
     }),
-    cv.SplitDefault(CONF_ESP8266_RESTORE_FROM_FLASH, esp8266=False): cv.All(cv.only_on_esp8266,
-                                                                            cv.boolean),
 
     cv.SplitDefault(CONF_BOARD_FLASH_MODE, esp8266='dout'): cv.one_of(*BUILD_FLASH_MODES,
                                                                       lower=True),
@@ -144,7 +142,10 @@ CONFIG_SCHEMA = cv.Schema({
 
     cv.Optional('esphome_core_version'): cv.invalid("The esphome_core_version option has been "
                                                     "removed in 1.13 - the esphome core source "
-                                                    "files are now bundled with ESPHome.")
+                                                    "files are now bundled with ESPHome."),
+    cv.Optional(CONF_ESP8266_RESTORE_FROM_FLASH):
+        cv.invalid("The esp8266_restore_from_flash option has been removed in 1.15 - each "
+                   "component now supports individual retain options"),
 })
 
 PRELOAD_CONFIG_SCHEMA = cv.Schema({

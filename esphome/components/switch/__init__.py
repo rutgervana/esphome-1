@@ -24,13 +24,6 @@ SwitchTurnOffTrigger = switch_ns.class_('SwitchTurnOffTrigger', automation.Trigg
 
 icon = cv.icon
 
-LEGACY_SWITCH_RESTORE_MODES = {
-    'RESTORE_DEFAULT_OFF': False, # deprecated
-    'RESTORE_DEFAULT_ON': False, # deprecated
-    'ALWAYS_OFF': False, # deprecated
-    'ALWAYS_ON': False, # deprecated
-}
-
 SWITCH_SCHEMA = cv.MQTT_COMMAND_COMPONENT_SCHEMA.extend({
     cv.OnlyWith(CONF_MQTT_ID, 'mqtt'): cv.declare_id(mqtt.MQTTSwitchComponent),
 
@@ -42,9 +35,7 @@ SWITCH_SCHEMA = cv.MQTT_COMMAND_COMPONENT_SCHEMA.extend({
     cv.Optional(CONF_ON_TURN_OFF): automation.validate_automation({
         cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(SwitchTurnOffTrigger),
     }),
-}).extend(cv.stateful_component_schema(
-    cv.boolean,
-    cv.enum(LEGACY_SWITCH_RESTORE_MODES, upper=True, space='_')))
+}).extend(cv.retain_component_schema(cv.boolean))
 
 
 @coroutine
@@ -67,7 +58,7 @@ def setup_switch_core_(var, config):
         mqtt_ = cg.new_Pvariable(config[CONF_MQTT_ID], var)
         yield mqtt.register_mqtt_component(mqtt_, config)
 
-    cv.stateful_component_to_code(var, config, bool)
+    cg.init_retain(var, config)
 
 
 @coroutine

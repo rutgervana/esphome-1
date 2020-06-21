@@ -9,7 +9,7 @@ static const char *TAG = "cover";
 const float COVER_OPEN = 1.0f;
 const float COVER_CLOSED = 0.0f;
 
-bool operator!=(const CoverRestoreState& lhs, const CoverRestoreState& rhs) {
+bool operator!=(const CoverRetainState &lhs, const CoverRetainState &rhs) {
   return ((lhs.position != rhs.position) || (lhs.tilt != rhs.tilt));
 }
 
@@ -173,16 +173,13 @@ void Cover::publish_state() {
 
   this->state_callback_.call();
 
-  CoverRestoreState restore{};
-  memset(&restore, 0, sizeof(restore));
-  restore.position = this->position;
+  CoverRetainState retain{};
+  memset(&retain, 0, sizeof(retain));
+  retain.position = this->position;
   if (traits.get_supports_tilt()) {
-    restore.tilt = this->tilt;
+    retain.tilt = this->tilt;
   }
-  this->rtc_.save(restore);
-}
-optional<CoverRestoreState> Cover::restore_state_() {
-  return this->rtc_.load();
+  this->save_state_(retain);
 }
 Cover::Cover() : Cover("") {}
 std::string Cover::get_device_class() {
@@ -194,7 +191,7 @@ bool Cover::is_fully_open() const { return this->position == COVER_OPEN; }
 bool Cover::is_fully_closed() const { return this->position == COVER_CLOSED; }
 std::string Cover::device_class() { return ""; }
 
-CoverCall CoverRestoreState::to_call(Cover *cover) {
+CoverCall CoverRetainState::to_call(Cover *cover) {
   auto call = cover->make_call();
   auto traits = cover->get_traits();
   call.set_position(this->position);
@@ -202,7 +199,7 @@ CoverCall CoverRestoreState::to_call(Cover *cover) {
     call.set_tilt(this->tilt);
   return call;
 }
-void CoverRestoreState::apply(Cover *cover) {
+void CoverRetainState::apply(Cover *cover) {
   cover->position = this->position;
   cover->tilt = this->tilt;
   cover->publish_state();

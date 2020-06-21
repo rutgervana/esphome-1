@@ -80,18 +80,9 @@ void ClimateIR::setup() {
   } else
     this->current_temperature = NAN;
   // restore set points
-  auto restore = this->restore_state_();
-  if (restore.has_value()) {
-    restore->apply(this);
-  } else {
-    // restore from defaults
-    this->mode = climate::CLIMATE_MODE_OFF;
-    // initialize target temperature to some value so that it's not NAN
-    this->target_temperature =
-        roundf(clamp(this->current_temperature, this->minimum_temperature_, this->maximum_temperature_));
-    this->fan_mode = climate::CLIMATE_FAN_AUTO;
-    this->swing_mode = climate::CLIMATE_SWING_OFF;
-  }
+  auto restore = this->get_state_();
+  restore.apply(this);
+
   // Never send nan to HA
   if (isnan(this->target_temperature))
     this->target_temperature = 24;

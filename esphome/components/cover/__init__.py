@@ -44,15 +44,14 @@ CoverPublishAction = cover_ns.class_('CoverPublishAction', automation.Action)
 CoverIsOpenCondition = cover_ns.class_('CoverIsOpenCondition', Condition)
 CoverIsClosedCondition = cover_ns.class_('CoverIsClosedCondition', Condition)
 
-CoverRestoreState = cover_ns.struct('CoverRestoreState')
+CoverRetainState = cover_ns.struct('CoverRetainState')
 
-def cover_schema(additional_restore_validator=False):
-    return cv.MQTT_COMMAND_COMPONENT_SCHEMA.extend({
-        cv.GenerateID(): cv.declare_id(Cover),
-        cv.OnlyWith(CONF_MQTT_ID, 'mqtt'): cv.declare_id(mqtt.MQTTCoverComponent),
-        cv.Optional(CONF_DEVICE_CLASS): cv.one_of(*DEVICE_CLASSES, lower=True),
-        # TODO: MQTT topic options
-    }).extend(cv.stateful_component_schema(validate_cover_state, additional_restore_validator))
+COVER_SCHEMA = cv.MQTT_COMMAND_COMPONENT_SCHEMA.extend({
+    cv.GenerateID(): cv.declare_id(Cover),
+    cv.OnlyWith(CONF_MQTT_ID, 'mqtt'): cv.declare_id(mqtt.MQTTCoverComponent),
+    cv.Optional(CONF_DEVICE_CLASS): cv.one_of(*DEVICE_CLASSES, lower=True),
+    # TODO: MQTT topic options
+}).extend(cv.retain_component_schema(validate_cover_state))
 
 
 @coroutine
@@ -70,11 +69,11 @@ def setup_cover_core_(var, config):
     def get_initial_value(config):
         if CONF_INITIAL_VALUE in config:
             initial_value = 1.0 if (config[CONF_INITIAL_VALUE] == 'OPEN') else 0.0
-            return cg.StructInitializer(CoverRestoreState, ('position', initial_value))
+            return cg.StructInitializer(CoverRetainState, ('position', initial_value))
 
         return cg.RawExpression("{}")
 
-    cv.stateful_component_to_code(var, config, CoverRestoreState, get_initial_value)
+    cg.init_retain(var, config, get_initial_value)
 
 
 @coroutine

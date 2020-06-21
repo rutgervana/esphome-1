@@ -15,14 +15,8 @@ void PIDClimate::setup() {
   });
   this->current_temperature = this->sensor_->state;
   // restore set points
-  auto restore = this->restore_state_();
-  if (restore.has_value()) {
-    restore->to_call(this).perform();
-  } else {
-    // restore from defaults, change_away handles those for us
-    this->mode = climate::CLIMATE_MODE_AUTO;
-    this->target_temperature = this->default_target_temperature_;
-  }
+  auto restore = this->get_state_();
+  restore.to_call(this).perform();
 }
 void PIDClimate::control(const climate::ClimateCall &call) {
   if (call.get_mode().has_value())

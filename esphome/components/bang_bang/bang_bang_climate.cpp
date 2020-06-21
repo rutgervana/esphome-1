@@ -16,15 +16,10 @@ void BangBangClimate::setup() {
   });
   this->current_temperature = this->sensor_->state;
   // restore set points
-  auto restore = this->restore_state_();
-  if (restore.has_value()) {
-    restore->to_call(this).perform();
-  } else {
-    // restore from defaults, change_away handles those for us
-    this->mode = climate::CLIMATE_MODE_AUTO;
-    this->change_away_(false);
-  }
+  auto restore = this->get_state_();
+  restore.to_call(this).perform();
 }
+
 void BangBangClimate::control(const climate::ClimateCall &call) {
   if (call.get_mode().has_value())
     this->mode = *call.get_mode();

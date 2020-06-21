@@ -100,8 +100,8 @@ class ClimateCall {
   optional<ClimateSwingMode> swing_mode_;
 };
 
-/// Struct used to save the state of the climate device in restore memory.
-struct ClimateDeviceRestoreState {
+/// Struct used to save the state of the climate device in retain memory.
+struct ClimateDeviceRetainState {
   ClimateMode mode;
   bool away;
   ClimateFanMode fan_mode;
@@ -119,12 +119,11 @@ struct ClimateDeviceRestoreState {
   /// Apply these settings to the climate device.
   void apply(Climate *climate);
 
-  bool operator!=(const ClimateDeviceRestoreState& rhs) const {
-    return ((this->mode != rhs.mode) ||
-      (this->away != rhs.away) ||
-      (this->target_temperature != rhs.target_temperature) ||
-      (this->target_temperature_low != rhs.target_temperature_low) ||
-      (this->target_temperature_high != rhs.target_temperature_high));
+  bool operator!=(const ClimateDeviceRetainState &rhs) const {
+    return ((this->mode != rhs.mode) || (this->away != rhs.away) ||
+            (this->target_temperature != rhs.target_temperature) ||
+            (this->target_temperature_low != rhs.target_temperature_low) ||
+            (this->target_temperature_high != rhs.target_temperature_high));
   }
 
 } __attribute__((packed));
@@ -144,7 +143,7 @@ struct ClimateDeviceRestoreState {
  * mode etc). These are read-only for the user and rw for integrations. The reason these are public
  * is for simple access to them from lambdas `if (id(my_climate).mode == climate::CLIMATE_MODE_AUTO) ...`
  */
-class Climate : public Nameable {
+class Climate : public Nameable, public RetainState<ClimateDeviceRetainState> {
  public:
   /// Construct a climate device with empty name (will be set later).
   Climate();
@@ -212,7 +211,6 @@ class Climate : public Nameable {
   void set_visual_min_temperature_override(float visual_min_temperature_override);
   void set_visual_max_temperature_override(float visual_max_temperature_override);
   void set_visual_temperature_step_override(float visual_temperature_step_override);
-  void set_preference(TypedESPPreferenceObject<ClimateDeviceRestoreState>&& preference) { this->rtc_ = preference; }
 
  protected:
   friend ClimateCall;
@@ -234,8 +232,7 @@ class Climate : public Nameable {
    * @param call The ClimateCall instance encoding all attribute changes.
    */
   virtual void control(const ClimateCall &call) = 0;
-  /// Restore the state of the climate device, call this from your setup() method.
-  optional<ClimateDeviceRestoreState> restore_state_();
+
   /** Internal method to save the state of the climate device to recover memory. This is automatically
    * called from publish_state()
    */
@@ -244,7 +241,6 @@ class Climate : public Nameable {
   uint32_t hash_base() override;
 
   CallbackManager<void()> state_callback_{};
-  TypedESPPreferenceObject<ClimateDeviceRestoreState> rtc_;
   optional<float> visual_min_temperature_override_{};
   optional<float> visual_max_temperature_override_{};
   optional<float> visual_temperature_step_override_{};

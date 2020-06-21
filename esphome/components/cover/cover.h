@@ -60,8 +60,8 @@ class CoverCall {
   optional<float> tilt_{};
 };
 
-/// Struct used to store the restored state of a cover
-struct CoverRestoreState {
+/// Struct used to store the retain state of a cover
+struct CoverRetainState {
   float position;
   float tilt;
 
@@ -71,7 +71,7 @@ struct CoverRestoreState {
   void apply(Cover *cover);
 } __attribute__((packed));
 
-bool operator!=(const CoverRestoreState& lhs, const CoverRestoreState& rhs);
+bool operator!=(const CoverRetainState &lhs, const CoverRetainState &rhs);
 
 /// Enum encoding the current operation of a cover.
 enum CoverOperation : uint8_t {
@@ -105,7 +105,7 @@ const char *cover_operation_to_str(CoverOperation op);
  * to control all values of the cover. Also implement get_traits() to return what operations
  * the cover supports.
  */
-class Cover : public Nameable {
+class Cover : public Nameable, public RetainState<CoverRetainState> {
  public:
   explicit Cover();
   explicit Cover(const std::string &name);
@@ -161,21 +161,16 @@ class Cover : public Nameable {
   /// Helper method to check if the cover is fully closed. Equivalent to comparing .position against 0.0
   bool is_fully_closed() const;
 
-  void set_preference(TypedESPPreferenceObject<CoverRestoreState>&& preference) { this->rtc_ = preference; }
-
  protected:
   friend CoverCall;
 
   virtual void control(const CoverCall &call) = 0;
   virtual std::string device_class();
 
-  optional<CoverRestoreState> restore_state_();
   uint32_t hash_base() override;
 
   CallbackManager<void()> state_callback_{};
   optional<std::string> device_class_override_{};
-
-  TypedESPPreferenceObject<CoverRestoreState> rtc_;
 };
 
 }  // namespace cover

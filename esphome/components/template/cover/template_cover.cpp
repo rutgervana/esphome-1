@@ -14,26 +14,17 @@ TemplateCover::TemplateCover()
       stop_trigger_(new Trigger<>()),
       position_trigger_(new Trigger<float>()),
       tilt_trigger_(new Trigger<float>()) {}
+
 void TemplateCover::setup() {
   ESP_LOGCONFIG(TAG, "Setting up template cover '%s'...", this->name_.c_str());
-  switch (this->restore_mode_) {
-    case COVER_NO_RESTORE:
-      break;
-    case COVER_RESTORE: {
-      auto restore = this->restore_state_();
-      if (restore.has_value())
-        restore->apply(this);
-      break;
-    }
-    case COVER_RESTORE_AND_CALL: {
-      auto restore = this->restore_state_();
-      if (restore.has_value()) {
-        restore->to_call(this).perform();
-      }
-      break;
-    }
-  }
+
+  auto state = this->get_state_();
+  state.apply(this);
+  // if call on start
+  // TODO
+  // state->to_call(this).perform();
 }
+
 void TemplateCover::loop() {
   bool changed = false;
 

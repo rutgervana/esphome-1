@@ -2,8 +2,7 @@ import hashlib
 
 from esphome import config_validation as cv, automation
 from esphome import codegen as cg
-from esphome.const import CONF_ID, CONF_INITIAL_VALUE, CONF_RESTORE_VALUE, CONF_TYPE, CONF_VALUE, \
-    CONF_RESTORE_MODE
+from esphome.const import CONF_ID, CONF_TYPE, CONF_VALUE, CONF_INITIAL_VALUE
 from esphome.core import coroutine_with_priority
 
 globals_ns = cg.esphome_ns.namespace('globals')
@@ -14,11 +13,13 @@ MULTI_CONF = True
 CONFIG_SCHEMA = cv.Schema({
     cv.Required(CONF_ID): cv.declare_id(GlobalsComponent),
     cv.Required(CONF_TYPE): cv.string_strict,
-    cv.Optional(CONF_INITIAL_VALUE): cv.string_strict,
-    cv.Optional(CONF_RESTORE_VALUE): cv.boolean, # don't set default in case they use RESTORE_MODE
-}).extend(cv.COMPONENT_SCHEMA).extend(cv.stateful_component_schema(cv.string_strict))
+    # cv.Optional(CONF_INITIAL_VALUE): cv.string_strict,
+    # cv.Optional(CONF_RESTORE_VALUE): cv.boolean,  # don't set default in case they use RESTORE_MODE
+}).extend(cv.COMPONENT_SCHEMA).extend(cv.retain_component_schema(cv.string_strict))
 
 # Run with low priority so that namespaces are registered first
+
+
 @coroutine_with_priority(-100.0)
 def to_code(config):
     type_ = cg.RawExpression(config[CONF_TYPE])
@@ -29,16 +30,14 @@ def to_code(config):
     glob = cg.Pvariable(config[CONF_ID], rhs, res_type)
     yield cg.register_component(glob, config)
 
-    def get_initial_value(config):
+    def get_initial_value_raw_expression(config):
         initial_value = cg.RawExpression("{}")
         if CONF_INITIAL_VALUE in config:
             initial_value = cg.RawExpression(config[CONF_INITIAL_VALUE])
         return initial_value
 
-    cv.stateful_component_to_code(glob,
-                                  config,
-                                  type_,
-                                  get_initial_value=get_initial_value)
+    cg.init_retain(glob, config, get_initial_value_raw_expression)
+
 
 @automation.register_action('globals.set', GlobalVarSetAction, cv.Schema({
     cv.Required(CONF_ID): cv.use_id(GlobalsComponent),

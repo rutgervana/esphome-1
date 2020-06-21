@@ -104,14 +104,8 @@ void YashimaClimate::setup() {
   } else
     this->current_temperature = NAN;
   // restore set points
-  auto restore = this->restore_state_();
-  if (restore.has_value()) {
-    restore->apply(this);
-  } else {
-    // restore from defaults
-    this->mode = climate::CLIMATE_MODE_OFF;
-    this->target_temperature = 24;
-  }
+  auto restore = this->get_state_();
+  restore.apply(this);
 }
 
 void YashimaClimate::control(const climate::ClimateCall &call) {

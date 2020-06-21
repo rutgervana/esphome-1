@@ -226,13 +226,10 @@ void Climate::add_on_state_callback(std::function<void()> &&callback) {
   this->state_callback_.add(std::move(callback));
 }
 
-optional<ClimateDeviceRestoreState> Climate::restore_state_() {
-  return (this->rtc_.load());
-}
 void Climate::save_state_() {
-  ClimateDeviceRestoreState state{};
+  ClimateDeviceRetainState state{};
   // initialize as zero to prevent random data on stack triggering erase
-  memset(&state, 0, sizeof(ClimateDeviceRestoreState));
+  memset(&state, 0, sizeof(ClimateDeviceRetainState));
 
   state.mode = this->mode;
   auto traits = this->get_traits();
@@ -252,7 +249,7 @@ void Climate::save_state_() {
     state.swing_mode = this->swing_mode;
   }
 
-  this->rtc_.save(state);
+  this->RetainState::save_state_(state);
 }
 void Climate::publish_state() {
   ESP_LOGD(TAG, "'%s' - Sending state:", this->name_.c_str());
@@ -315,7 +312,7 @@ Climate::Climate(const std::string &name) : Nameable(name) {}
 Climate::Climate() : Climate("") {}
 ClimateCall Climate::make_call() { return ClimateCall(this); }
 
-ClimateCall ClimateDeviceRestoreState::to_call(Climate *climate) {
+ClimateCall ClimateDeviceRetainState::to_call(Climate *climate) {
   auto call = climate->make_call();
   auto traits = climate->get_traits();
   call.set_mode(this->mode);
@@ -336,7 +333,7 @@ ClimateCall ClimateDeviceRestoreState::to_call(Climate *climate) {
   }
   return call;
 }
-void ClimateDeviceRestoreState::apply(Climate *climate) {
+void ClimateDeviceRetainState::apply(Climate *climate) {
   auto traits = climate->get_traits();
   climate->mode = this->mode;
   if (traits.get_supports_two_point_target_temperature()) {

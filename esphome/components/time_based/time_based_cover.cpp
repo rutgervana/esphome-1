@@ -14,12 +14,8 @@ void TimeBasedCover::dump_config() {
   ESP_LOGCONFIG(TAG, "  Close Duration: %.1fs", this->close_duration_ / 1e3f);
 }
 void TimeBasedCover::setup() {
-  auto restore = this->restore_state_();
-  if (restore.has_value()) {
-    restore->apply(this);
-  } else {
-    this->position = 0.5f;
-  }
+  auto restore = this->get_state_();
+  restore.apply(this);
 }
 void TimeBasedCover::loop() {
   if (this->current_operation == COVER_OPERATION_IDLE)
@@ -43,7 +39,7 @@ void TimeBasedCover::loop() {
 
   // Send current position every second
   if (now - this->last_publish_time_ > 1000) {
-    this->publish_state(false);
+    this->publish_state();
     this->last_publish_time_ = now;
   }
 }

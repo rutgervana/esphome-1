@@ -31,17 +31,13 @@ void EndstopCover::control(const CoverCall &call) {
   }
 }
 void EndstopCover::setup() {
-  auto restore = this->restore_state_();
-  if (restore.has_value()) {
-    restore->apply(this);
-  }
+  auto restore = this->get_state_();
+  restore.apply(this);
 
   if (this->is_open_()) {
     this->position = COVER_OPEN;
   } else if (this->is_closed_()) {
     this->position = COVER_CLOSED;
-  } else if (!restore.has_value()) {
-    this->position = 0.5f;
   }
 }
 void EndstopCover::loop() {
@@ -80,7 +76,7 @@ void EndstopCover::loop() {
 
   // Send current position every second
   if (this->current_operation != COVER_OPERATION_IDLE && now - this->last_publish_time_ > 1000) {
-    this->publish_state(false);
+    this->publish_state();
     this->last_publish_time_ = now;
   }
 }
