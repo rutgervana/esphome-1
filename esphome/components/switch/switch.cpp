@@ -34,7 +34,7 @@ void Switch::publish_state(bool state) {
     return;
   this->state = state != this->inverted_;
 
-  this->save_state_(&this->state);
+  this->save_state_(this->state);
   ESP_LOGD(TAG, "'%s': Sending state %s", this->name_.c_str(), ONOFF(state));
   this->state_callback_.call(this->state);
 }

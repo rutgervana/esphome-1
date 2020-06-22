@@ -31,7 +31,9 @@ CONFIG_SCHEMA = cover.COVER_SCHEMA.extend({
     cv.Optional(CONF_TILT_ACTION): automation.validate_automation(single=True),
     cv.Optional(CONF_TILT_LAMBDA): cv.returning_lambda,
     cv.Optional(CONF_POSITION_ACTION): automation.validate_automation(single=True),
-    cv.Optional(CONF_RESTORE_MODE): cv.invalid("TODO restore_mode is deprectad... (Need to add call option)")
+    cv.Optional(CONF_RESTORE_MODE): cv.invalid(
+        # TODO
+        "TODO restore_mode is deprectad... (Need to add call option)")
 })
 
 
@@ -66,8 +68,8 @@ def to_code(config):
     cg.add(var.set_optimistic(config[CONF_OPTIMISTIC]))
     cg.add(var.set_assumed_state(config[CONF_ASSUMED_STATE]))
 
-    # TODO: Review # Restore mode is now handled in stateful_component_to_code, but this template cover also has
-    # # some special logic for the legacy modes, so we add that here.
+    # TODO: Review # Restore mode is now handled in stateful_component_to_code, but this
+    # template cover also has some special logic for the legacy modes, so we add that here.
     # if CONF_RESTORE_MODE in config:
     #     if ((config[CONF_RESTORE_MODE] == 'NO_RESTORE') or
     #             (config[CONF_RESTORE_MODE] == 'RESTORE') or

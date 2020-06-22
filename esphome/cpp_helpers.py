@@ -103,7 +103,8 @@ def struct_initial_value(device_retain_state):
         initial_value = RawExpression("{}")
         if CONF_INITIAL_VALUE in config:
             initial_value_config = config[CONF_INITIAL_VALUE]
-            initial_value = variable(initial_value_config[CONF_ID], RawExpression("{}"), device_retain_state)
+            initial_value = variable(initial_value_config[CONF_ID], RawExpression("{}"),
+                                     device_retain_state)
             for key, val in initial_value_config.items():
                 if isinstance(val, ID):
                     continue

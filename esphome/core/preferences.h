@@ -13,7 +13,7 @@ enum Retain {
   RETAIN_NO,
 };
 
-#define LOG_STATEFUL_COMPONENT(this) \
+#define LOG_RETAIN_COMPONENT(this) \
   const char* retain = ""; \
   switch (this->retain_) { \
     case RETAIN_YES: \
@@ -119,8 +119,7 @@ template<typename T> bool ESPPreferenceObject::load(T* dest) {
 template<typename T> class RetainState {
  public:
   RetainState() {}
-  RetainState(ESPPreferenceObject&& base) : ESPPreferenceObject(base) {}
-  void init_retain(uint32_t type, Retain retain, T initial_state_);
+  void init_retain(uint32_t type, Retain retain, T initial_state);
 
  protected:
   void save_state_(const T& value);
@@ -134,9 +133,9 @@ template<typename T> class RetainState {
   Retain retain_;
 };
 
-template<typename T> void RetainState<T>::init_retain(uint32_t type, Retain retain, T initial_state_) {
+template<typename T> void RetainState<T>::init_retain(uint32_t type, Retain retain, T initial_state) {
   this->retain_ = retain;
-  this->initial_state_ = initial_state_;
+  this->initial_state_ = initial_state;
   if (retain != RETAIN_NO) {
     this->preference_ = global_preferences.make_preference<T>(type, retain == RETAIN_YES);
   }
@@ -156,7 +155,7 @@ template<typename T> void RetainState<T>::save_state_(const T& value) {
 }
 
 template<typename T> T&& RetainState<T>::get_state_() {
-  T result = this->initial_state_;
+  T& result = this->initial_state_;
 
   if (this->retain_ != RETAIN_NO)
     this->preference_.load(&result);

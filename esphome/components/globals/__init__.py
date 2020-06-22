@@ -1,5 +1,3 @@
-import hashlib
-
 from esphome import config_validation as cv, automation
 from esphome import codegen as cg
 from esphome.const import CONF_ID, CONF_TYPE, CONF_VALUE, CONF_INITIAL_VALUE
@@ -14,12 +12,12 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Required(CONF_ID): cv.declare_id(GlobalsComponent),
     cv.Required(CONF_TYPE): cv.string_strict,
     # cv.Optional(CONF_INITIAL_VALUE): cv.string_strict,
-    # cv.Optional(CONF_RESTORE_VALUE): cv.boolean,  # don't set default in case they use RESTORE_MODE
+    # cv.Optional(CONF_RESTORE_VALUE): cv.boolean, # don't set default
+    # in case they use RESTORE_MODE
 }).extend(cv.COMPONENT_SCHEMA).extend(cv.retain_component_schema(cv.string_strict))
 
+
 # Run with low priority so that namespaces are registered first
-
-
 @coroutine_with_priority(-100.0)
 def to_code(config):
     type_ = cg.RawExpression(config[CONF_TYPE])

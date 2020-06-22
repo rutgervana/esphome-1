@@ -338,6 +338,7 @@ def lint_pragma_once(fname, content):
     'esphome/components/switch/switch.h',
     'esphome/components/text_sensor/text_sensor.h',
     'esphome/components/climate/climate.h',
+    'esphome/core/preferences.h',
     'esphome/core/component.h',
     'esphome/core/esphal.h',
     'esphome/core/log.h',
