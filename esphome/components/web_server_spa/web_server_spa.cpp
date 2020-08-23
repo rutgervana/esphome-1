@@ -538,6 +538,8 @@ void WebServerSpa::handleRequest(AsyncWebServerRequest *request) {
   }
 
   UrlMatch match = match_url(request->url().c_str());
+
+  ESP_LOGD(TAG, "handleRequest Url match: %d domain: %s", match.valid, match.domain.c_str());
 #ifdef USE_SENSOR
   if (match.domain == "sensor") {
     this->handle_sensor_request(request, match);
