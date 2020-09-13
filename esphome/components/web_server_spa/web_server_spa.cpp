@@ -146,7 +146,7 @@ bool WebServerSpa::canHandle(AsyncWebServerRequest *request) {
     return true;
 
   for (auto it = served_files_.begin(); it != served_files_.end(); it++)
-    if (request->url().substring(1) == (*it).first)
+    if (request->url() == (*it).first)
       return true;
 
   UrlMatch match = match_url(request->url().c_str(), true);
@@ -533,7 +533,7 @@ void WebServerSpa::handleRequest(AsyncWebServerRequest *request) {
   //   }
 
   if (request->url() == "/") {
-    this->static_serve(request, "index.html");
+    this->static_serve(request, "/index.html");
     return;
   }
 
@@ -589,8 +589,7 @@ void WebServerSpa::handleRequest(AsyncWebServerRequest *request) {
   }
 #endif
 
-  // substring 1 to remove first '/'
-  this->static_serve(request, request->url().substring(1).c_str());
+  this->static_serve(request, request->url().c_str());
 }
 
 bool WebServerSpa::isRequestHandlerTrivial() { return false; }

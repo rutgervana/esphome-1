@@ -36,7 +36,6 @@ def to_code(config):
     cg.add(paren.set_port(config[CONF_PORT]))
 
     for file_name in glob.iglob(config[CONF_APP_PATH] + '/**/*.*', recursive=True):
-
         if file_name.endswith(".map"):
             continue
 
@@ -49,6 +48,41 @@ def to_code(config):
         rhs = [HexInt(x) for x in data]
         file_content = cg.progmem_array(gen_id, rhs)
 
-        content_type = 'text/html'
+        if relative_path.endswith(".html") or relative_path.endswith(".htm"):
+            content_type = 'text/html'
+        elif relative_path.endswith(".css"):
+            content_type = 'text/css'
+        elif relative_path.endswith(".json"):
+            content_type = 'application/json'
+        elif relative_path.endswith(".js"):
+            content_type = 'application/javascript'
+        elif relative_path.endswith(".png"):
+            content_type = 'image/png'
+        elif relative_path.endswith(".gif"):
+            content_type = 'image/gif'
+        elif relative_path.endswith(".jpg"):
+            content_type = 'image/jpeg'
+        elif relative_path.endswith(".ico"):
+            content_type = 'image/x-icon'
+        elif relative_path.endswith(".svg"):
+            content_type = 'image/svg+xml'
+        elif relative_path.endswith(".eot"):
+            content_type = 'font/eot'
+        elif relative_path.endswith(".woff"):
+            content_type = 'font/woff'
+        elif relative_path.endswith(".woff2"):
+            content_type = 'font/woff2'
+        elif relative_path.endswith(".ttf"):
+            content_type = 'font/ttf'
+        elif relative_path.endswith(".xml"):
+            content_type = 'text/xml'
+        elif relative_path.endswith(".pdf"):
+            content_type = 'application/pdf'
+        elif relative_path.endswith(".zip"):
+            content_type = 'application/zip'
+        elif relative_path.endswith(".gz"):
+            content_type = 'application/x-gzip'
+        else:
+            content_type = 'text/plain'
 
         cg.add(var.file(relative_path, content_type, file_content, len(data)))
