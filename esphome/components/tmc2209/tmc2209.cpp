@@ -11,8 +11,11 @@ void TMC2209::setup() {
 
   stepper_driver_.pdn_disable(true);
   stepper_driver_.begin();
-
+  stepper_driver_.I_scale_analog(false);
+  stepper_driver_.internal_Rsense(false);
+  stepper_driver_.mstep_reg_select(true);
   stepper_driver_.en_spreadCycle(false);
+
   if (reverse_direction_)
     stepper_driver_.shaft(true);
 
