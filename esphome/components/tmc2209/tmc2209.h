@@ -18,7 +18,7 @@ class TMC2209 : public stepper::Stepper, public Component, public uart::UARTDevi
   void setup() override;
   void dump_config() override;
   void loop() override;
-  float get_setup_priority() const override { return setup_priority::LATE; }
+  float get_setup_priority() const override { return setup_priority::HARDWARE; }
 
   const TMC2209Stepper &get_driver() const { return *this->stepper_driver_; }
 
