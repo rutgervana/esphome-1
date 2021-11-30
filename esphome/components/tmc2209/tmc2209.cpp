@@ -9,15 +9,19 @@ static const char *TAG = "tmc2209.stepper";
 void TMC2209::setup() {
   ESP_LOGCONFIG(TAG, "Setting up TMC2209...");
 
-  stepper_driver_.pdn_disable(true);
-  stepper_driver_.begin();
-  stepper_driver_.I_scale_analog(false);
-  stepper_driver_.internal_Rsense(false);
-  stepper_driver_.mstep_reg_select(true);
-  stepper_driver_.en_spreadCycle(false);
+  // this->get_stream()->write("Hello from UART");
+
+  stepper_driver_ = new TMC2209Stepper(this->get_stream(), 0.15f, 0b00);
+
+  stepper_driver_->pdn_disable(true);
+  stepper_driver_->begin();
+  stepper_driver_->I_scale_analog(false);
+  stepper_driver_->internal_Rsense(false);
+  stepper_driver_->mstep_reg_select(true);
+  stepper_driver_->en_spreadCycle(false);
 
   if (reverse_direction_)
-    stepper_driver_.shaft(true);
+    stepper_driver_->shaft(true);
 
   if (this->sleep_pin_ != nullptr) {
     this->sleep_pin_->setup();

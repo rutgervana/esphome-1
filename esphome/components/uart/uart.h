@@ -64,6 +64,8 @@ class UARTDevice {
   void check_uart_settings(uint32_t baud_rate, uint8_t stop_bits = 1,
                            UARTParityOptions parity = UART_CONFIG_PARITY_NONE, uint8_t data_bits = 8);
 
+  Stream *get_stream() { return this->parent_->get_stream(); };
+
  protected:
   UARTComponent *parent_{nullptr};
 };

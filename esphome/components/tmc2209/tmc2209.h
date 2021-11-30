@@ -1,7 +1,6 @@
 #pragma once
 
 #include "esphome/core/component.h"
-#include "esphome/core/esphal.h"
 #include "esphome/components/stepper/stepper.h"
 #include "esphome/components/uart/uart.h"
 
@@ -13,24 +12,21 @@ namespace tmc {
 class TMC2209 : public stepper::Stepper, public Component, public uart::UARTDevice {
  public:
   TMC2209(GPIOPin *step_pin, GPIOPin *dir_pin, bool reverse_direction)
-      : step_pin_(step_pin),
-        dir_pin_(dir_pin),
-        reverse_direction_(reverse_direction),
-        stepper_driver_(this, 0.15f, 0b00) {}
+      : step_pin_(step_pin), dir_pin_(dir_pin), reverse_direction_(reverse_direction) {}
 
   void set_sleep_pin(GPIOPin *sleep_pin) { this->sleep_pin_ = sleep_pin; }
   void setup() override;
   void dump_config() override;
   void loop() override;
-  float get_setup_priority() const override { return setup_priority::HARDWARE; }
+  float get_setup_priority() const override { return setup_priority::LATE; }
 
-  const TMC2209Stepper &get_driver() const { return this->stepper_driver_; }
+  const TMC2209Stepper &get_driver() const { return *this->stepper_driver_; }
 
  protected:
   GPIOPin *step_pin_;
   GPIOPin *dir_pin_;
   bool reverse_direction_;
-  TMC2209Stepper stepper_driver_;
+  TMC2209Stepper *stepper_driver_;
   GPIOPin *sleep_pin_{nullptr};
   bool sleep_pin_state_;
   HighFrequencyLoopRequester high_freq_;

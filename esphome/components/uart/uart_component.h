@@ -10,6 +10,8 @@
 #include "esphome/core/automation.h"
 #endif
 
+#include "Stream.h"
+
 namespace esphome {
 namespace uart {
 
@@ -68,6 +70,8 @@ class UARTComponent {
     this->debug_callback_.add(std::move(callback));
   }
 #endif
+
+  virtual Stream *get_stream() = 0;
 
  protected:
   virtual void check_logger_conflict() = 0;

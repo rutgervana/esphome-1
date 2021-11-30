@@ -28,6 +28,8 @@ class ESP32ArduinoUARTComponent : public UARTComponent, public Component {
 
   uint32_t get_config();
 
+  Stream *get_stream() override { return hw_serial_; }
+
  protected:
   void check_logger_conflict() override;
 
